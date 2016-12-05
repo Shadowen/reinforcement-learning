@@ -8,7 +8,7 @@ class Estimator():
     Value Function approximator.
     """
 
-    def __init__(self, sess, env, scope="Estimator", model_builder=None, summaries_dir=None):
+    def __init__(self, sess, env, scope="Estimator", model_builder=None, optimizer=None, summaries_dir=None):
         self.sess = sess
         self.env = env
         self.scope = scope
@@ -16,24 +16,30 @@ class Estimator():
         self.summary_writer = None
         with tf.variable_scope(scope):
             # Build the graph
-            (model_builder if model_builder else self._build_model)()
+            self._build_model(model_builder, optimizer)
             if summaries_dir:
                 if not os.path.exists(summaries_dir):
                     os.makedirs(summaries_dir)
                 self.summary_writer = tf.train.SummaryWriter(summaries_dir)
 
-    def _build_model(self):
+                # Summaries for Tensorboard
+                self.summaries = tf.merge_summary([
+                    tf.scalar_summary(tags="loss", values=self.loss),
+                    # tf.histogram_summary("loss_hist", self.losses),
+                    # tf.histogram_summary("q_values_hist", self.predictions),
+                    tf.scalar_summary(tags="max_q_value", values=tf.reduce_max(self.predictions))
+                ])
+
+    def _build_model(self, model_builder, optimizer):
         # Placeholders for our input
-        self.X_pl = tf.placeholder(shape=[None, 4], dtype=tf.float32, name="X")
+        self.X_pl = tf.placeholder(shape=[None, self.env.observation_space.shape[0]], dtype=tf.float32, name="X")
+        batch_size = tf.shape(self.X_pl)[0]
         # The TD target value
         self.y_pl = tf.placeholder(shape=[None], dtype=tf.float32, name="y")
         # Integer id of which action was selected
         self.actions_pl = tf.placeholder(shape=[None], dtype=tf.int32, name="actions")
 
-        batch_size = tf.shape(self.X_pl)[0]
-
-        hidden_layer = tf.contrib.layers.fully_connected(self.X_pl, 20)
-        self.predictions = tf.contrib.layers.fully_connected(hidden_layer, self.env.action_space.n)
+        self.predictions = model_builder(self.X_pl)
 
         # Get the predictions for the chosen actions only
         gather_indices = tf.range(batch_size) * tf.shape(self.predictions)[1] + self.actions_pl
@@ -43,17 +49,10 @@ class Estimator():
         self.losses = tf.squared_difference(self.y_pl, self.action_predictions)
         self.loss = tf.reduce_mean(self.losses)
 
-        # Optimizer Parameters from original paper
-        self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
-        self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
-
-        # Summaries for Tensorboard
-        self.summaries = tf.merge_summary([
-            tf.scalar_summary("loss", self.loss),
-            tf.histogram_summary("loss_hist", self.losses),
-            tf.histogram_summary("q_values_hist", self.predictions),
-            tf.scalar_summary("max_q_value", tf.reduce_max(self.predictions))
-        ])
+        # We only need an optimizer if we plan to train this network
+        if optimizer:
+            self.optimizer = optimizer
+            self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
     def predict(self, states):
         """
@@ -100,8 +99,10 @@ class Estimator():
         return np.random.choice(np.arange(len(probs)), p=probs)
 
     def copy_parameters_from(self, other):
-        self_params = sorted((t for t in tf.trainable_variables() if t.name.startswith(self.scope)), key=lambda v: v.name)
-        other_params = sorted((t for t in tf.trainable_variables() if t.name.startswith(other.scope)), key=lambda v: v.name)
+        self_params = sorted((t for t in tf.trainable_variables() if t.name.startswith(self.scope)),
+                             key=lambda v: v.name)
+        other_params = sorted((t for t in tf.trainable_variables() if t.name.startswith(other.scope)),
+                              key=lambda v: v.name)
 
         update_ops = []
         for self_v, other_v in zip(self_params, other_params):
