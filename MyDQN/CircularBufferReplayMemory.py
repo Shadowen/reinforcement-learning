@@ -1,6 +1,13 @@
 import random
 
+
 class CircularBufferReplayMemory():
+    """
+    A simple circular buffer implemented on an array. It act like an array up until max_length, at which point it
+    will begin overwriting old elements.
+    Sampling occurs uniformly at random without replacement.
+    """
+
     def __init__(self, max_length):
         self.max_length = max_length
         self.current = 0
