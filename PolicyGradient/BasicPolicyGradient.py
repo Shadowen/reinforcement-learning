@@ -2,7 +2,6 @@
 # Originally a Policy Gradient algorithm, upgraded to an Actor-Critic algorithm.
 
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 import numpy as np
 import gym
 from MyDQN.CircularBufferReplayMemory import CircularBufferReplayMemory
@@ -26,51 +25,52 @@ def discount_rewards(r):
 
 
 class PolicyEstimator():
-    def __init__(self, learning_rate, s_size, a_size, h_size, scope='policy_estimator'):
+    def __init__(self, learning_rate, s_size, a_size, scope='policy_estimator'):
         with tf.variable_scope(scope):
             # These lines established the feed-forward part of the network. The agent takes a state and produces an
             # action.
             self.state_in = tf.placeholder(shape=[None, s_size], dtype=tf.float32)
-            hidden = slim.fully_connected(self.state_in, h_size, biases_initializer=None, activation_fn=tf.nn.relu)
-            self.output = slim.fully_connected(hidden, a_size, activation_fn=tf.nn.softmax, biases_initializer=None)
-            self.chosen_action = tf.argmax(self.output, 1)
+            fc_1 = tf.layers.dense(inputs=self.state_in, units=8, activation=tf.nn.relu)
+            self.output = tf.layers.dense(inputs=fc_1, units=a_size, activation=tf.nn.softmax)
 
             # The next six lines establish the training procedure. We feed the reward and chosen action into the network
             # to compute the loss, and use it to update the network.
-            self.reward_holder = tf.placeholder(shape=[None], dtype=tf.float32)
-            self.action_holder = tf.placeholder(shape=[None], dtype=tf.int32)
+            self.advantage_pl = tf.placeholder(shape=[None], dtype=tf.float32)
+            self.action_pl = tf.placeholder(shape=[None], dtype=tf.int32)
 
-            self.indexes = tf.range(0, tf.shape(self.output)[0]) * tf.shape(self.output)[1] + self.action_holder
-            self.responsible_outputs = tf.gather(tf.reshape(self.output, [-1]), self.indexes)
+            indexes = tf.range(0, tf.shape(self.output)[0]) * tf.shape(self.output)[1] + self.action_pl
+            self.responsible_outputs = tf.gather(tf.reshape(self.output, [-1]), indexes)
 
-            self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs) * self.reward_holder)
-
-            estimator_parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope)
-            self.gradient_holders = []
-            for idx, var in enumerate(estimator_parameters):
-                placeholder = tf.placeholder(tf.float32, name=str(idx) + '_holder')
-                self.gradient_holders.append(placeholder)
-
-            self.gradients = tf.gradients(self.loss, estimator_parameters)
-
-            optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-            self.update_batch = optimizer.apply_gradients(zip(self.gradient_holders, estimator_parameters),
+            self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs) * self.advantage_pl)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+            self.gradients, self.trainable_variables = zip(*self.optimizer.compute_gradients(self.loss))
+            self.clipped_gradients, self.global_norm = tf.clip_by_global_norm(self.gradients, clip_norm=1.0)
+            self.train_op = self.optimizer.apply_gradients(zip(self.clipped_gradients, self.trainable_variables),
                 global_step=tf.contrib.framework.get_global_step())
 
+            self._create_summaries()
+
     def _create_summaries(self):
-        self.action_probs_summary = tf.summary.histogram('actions_probs', self.action_probs)
+        # self.action_probs_summary = tf.summary.histogram('actions_probs', self.action_probs)
+        self.max_gradient_norm_op = tf.reduce_max([tf.reduce_max(g) for g in self.clipped_gradients])
+        self.max_gradient_norm_summary_op = tf.summary.scalar('maxgradient_norm', self.max_gradient_norm_op)
+
+        self.global_norm_summary_op = tf.summary.scalar('global_norm', self.global_norm)
+
+        self.training_summaries = tf.summary.merge([self.max_gradient_norm_summary_op, self.global_norm_summary_op])
 
     def predict(self, state, sess=None):
         sess = sess or tf.get_default_session()
-        return sess.run(self.action_probs, {self.state: state})
+        return sess.run(self.action_probs, {self.state_in: state})
 
     def update(self, state, target, action, sess=None, summary_writer=None):
         sess = sess or tf.get_default_session()
-        feed_dict = {self.state: state, self.target: target, self.action: action}
-        _, max_gradient_summary = sess.run([self.train_op, self.max_gradient_summary], feed_dict)
+        feed_dict = {self.state_in: state, self.advantage_pl: target, self.action_pl: action}
+        global_step, _, summaries = sess.run(
+            [tf.contrib.framework.get_global_step(), self.train_op, self.training_summaries], feed_dict)
+
         if summary_writer:
-            summary_writer.add_summary(max_gradient_summary,
-                global_step=sess.run(tf.contrib.framework.get_global_step()))
+            summary_writer.add_summary(summaries, global_step)
 
 
 class ValueEstimator():
@@ -83,7 +83,6 @@ class ValueEstimator():
             self.state = tf.placeholder(dtype=tf.float32, shape=[None, 4], name="state")
             self.target = tf.placeholder(dtype=tf.float32, shape=[None], name="target")
 
-            # This is just table lookup estimator
             self.fc1 = tf.layers.dense(inputs=self.state, units=32, activation=tf.nn.relu)
             self.output_layer = tf.layers.dense(inputs=self.fc1, units=1, activation=None)
 
@@ -119,9 +118,9 @@ class ValueEstimator():
 tf.reset_default_graph()  # Clear the Tensorflow graph.
 
 global_step = tf.Variable(0, name="global_step", trainable=False)
-policy_estimator = PolicyEstimator(learning_rate=1e-2, s_size=4, a_size=2, h_size=8)  # Load the agent.
+policy_estimator = PolicyEstimator(learning_rate=1e-2, s_size=4, a_size=2)  # Load the agent.
 value_estimator = ValueEstimator(learning_rate=1e-2)
-logdir = 'basic_policy_gradient'
+logdir = 'basic_policy_gradient_clipped_gradient'
 if os.path.exists(logdir):
     shutil.rmtree(logdir)
 os.mkdir(logdir)
@@ -136,6 +135,9 @@ def summarize_reward(reward, sess, summary_writer):
         feed_dict={reward_placeholder: reward})
     summary_writer.add_summary(reward_summary, global_step)
 
+
+Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
+replay_memory = CircularBufferReplayMemory(10000)
 
 total_episodes = 5000  # Set total number of episodes to train agent on.
 max_ep = 999
@@ -153,7 +155,6 @@ with tf.Session() as sess:
     for i in range(total_episodes):
         state = env.reset()
         total_episode_reward = 0
-        ep_history = []
         value_estimator.predict(state=np.expand_dims(state, axis=0), sess=sess, summary_writer=summary_writer)
         for j in range(max_ep):
             # Choose either a random action or one from our network.
@@ -161,31 +162,23 @@ with tf.Session() as sess:
             action = np.random.choice(np.arange(len(a_dist)), p=a_dist)
 
             next_state, reward, done, _ = env.step(action)  # Get our reward for taking an action given a bandit.
-            ep_history.append([state, action, reward, next_state, done])
+            replay_memory.append(Transition(state, action, reward, next_state, done))
             state = next_state
             total_episode_reward += reward
 
             if done:
-                ep_history = np.array(ep_history)
-                ep_history[:, 2] = discount_rewards(ep_history[:, 2])
+                states, actions, rewards, next_states, done = zip(*replay_memory.sample(500))
                 # Update the value network
-                value_predictions = value_estimator.predict(state=np.array([a for a in ep_history[:, 3]]), sess=sess)
-                td_target = reward + np.logical_not(ep_history[:, 4]).astype(np.int8) * gamma * value_predictions
-                value_estimator.update(state=np.array([a for a in ep_history[:, 0]]), target=td_target, sess=sess)
+                value_predictions = value_estimator.predict(state=next_states, sess=sess)
+                td_targets = rewards + np.logical_not(done).astype(np.int8) * gamma * value_predictions
+                value_estimator.update(state=states, target=td_targets, sess=sess)
                 # Update the network.
                 feed_dict = {
-                    policy_estimator.reward_holder: td_target, policy_estimator.action_holder: ep_history[:, 1],
-                    policy_estimator.state_in: np.vstack(ep_history[:, 0])
+                    policy_estimator.advantage_pl: td_targets, policy_estimator.action_pl: actions,
+                    policy_estimator.state_in: states
                 }
-                grads = sess.run(policy_estimator.gradients, feed_dict=feed_dict)
-                for idx, grad in enumerate(grads):
-                    gradBuffer[idx] += grad
+                policy_estimator.update(states, td_targets, actions, sess, summary_writer)
 
-                if i % update_frequency == 0 and i != 0:
-                    feed_dict = dict(zip(policy_estimator.gradient_holders, gradBuffer))
-                    _ = sess.run(policy_estimator.update_batch, feed_dict=feed_dict)
-                    for ix, grad in enumerate(gradBuffer):
-                        gradBuffer[ix] = grad * 0
                 summarize_reward(total_episode_reward, sess, summary_writer)
                 total_reward.append(total_episode_reward)
                 break

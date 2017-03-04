@@ -15,15 +15,21 @@ class CircularBufferReplayMemory():
 
         self.array = [None] * self.max_length;
 
-    def append(self, transition):
+    def append(self, transition, **kwargs):
         self.array[self.current] = transition
+        self.current_length = max(self.current + 1, self.current_length)
         self.current = (self.current + 1) % self.max_length
-        self.current_length = max(self.current, self.current_length)
 
     def sample(self, batch_size):
+        if batch_size > self.current_length:
+            return random.sample(self.array[:self.current_length], self.current_length)
         if self.current_length < self.max_length:
             return random.sample(self.array[:self.current_length], batch_size)
         return random.sample(self.array, batch_size)
 
     def __len__(self):
+        return self.length
+
+    @property
+    def length(self):
         return self.current_length
