@@ -2,12 +2,12 @@
 
 This repository provides code, exercises and solutions for popular Reinforcement Learning algorithms. These are meant to serve as a learning tool to complement the theoretical materials from
 
-- [Reinforcement Learning: An Introduction (2nd Edition)](https://webdocs.cs.ualberta.ca/~sutton/book/bookdraft2016sep.pdf)
+- [Reinforcement Learning: An Introduction (2nd Edition)](http://incompleteideas.net/book/bookdraft2018jan1.pdf)
 - [David Silver's Reinforcement Learning Course](http://www0.cs.ucl.ac.uk/staff/d.silver/web/Teaching.html)
 
-Each folder in corresponds to one or more chapters of the above textbook and/or course. In addition to exercises and solution each folder also contains a list of learning goals, a brief concept summary, and links to the relevant readings.
+Each folder in corresponds to one or more chapters of the above textbook and/or course. In addition to exercises and solution, each folder also contains a list of learning goals, a brief concept summary, and links to the relevant readings.
 
-All code is written in Python 3 and use RL environments from [OpenAI Gym](https://gym.openai.com/). Advanced techniques use [Tensorflow](tensorflow.org/) for neural network implementations.
+All code is written in Python 3 and uses RL environments from [OpenAI Gym](https://gym.openai.com/). Advanced techniques use [Tensorflow](https://www.tensorflow.org/) for neural network implementations.
 
 
 ### Table of Contents
@@ -26,31 +26,31 @@ All code is written in Python 3 and use RL environments from [OpenAI Gym](https:
 
 ### List of Implemented Algorithms
 
-- [Dynamic Programming Policy Evaluation](DP/Policy Evaluation Solution.ipynb)
-- [Dynamic Programming Policy Iteration](DP/Policy Iteration Solution.ipynb)
-- [Dynamic Programming Value Iteration](DP/Value Iteration Solution.ipynb)
-- [Monte Carlo Prediction](MC/MC Prediction Solution.ipynb)
-- [Monte Carlo Control with Epsilon-Greedy Policies](MC/MC Control with Epsilon-Greedy Policies Solution.ipynb)
-- [Monte Carlo Off-Policy Control with Importance Sampling](MC/Off-Policy MC Control with Weighted Importance Sampling Solution.ipynb)
-- [SARSA (On Policy TD Learning)](TD/SARSA Solution.ipynb)
-- [Q-Learning (Off Policy TD Learning)](TD/Q-Learning Solution.ipynb)
-- [Q-Learning with Linear Function Approximation](FA/Q-Learning with Value Function Approximation Solution.ipynb)
-- [Deep Q-Learning for Atari Games](DQN/Deep Q Learning Solution.ipynb)
-- [Double Deep-Q Learning for Atari Games](DQN/Double DQN Solution.ipynb)
+- [Dynamic Programming Policy Evaluation](DP/Policy%20Evaluation%20Solution.ipynb)
+- [Dynamic Programming Policy Iteration](DP/Policy%20Iteration%20Solution.ipynb)
+- [Dynamic Programming Value Iteration](DP/Value%20Iteration%20Solution.ipynb)
+- [Monte Carlo Prediction](MC/MC%20Prediction%20Solution.ipynb)
+- [Monte Carlo Control with Epsilon-Greedy Policies](MC/MC%20Control%20with%20Epsilon-Greedy%20Policies%20Solution.ipynb)
+- [Monte Carlo Off-Policy Control with Importance Sampling](MC/Off-Policy%20MC%20Control%20with%20Weighted%20Importance%20Sampling%20Solution.ipynb)
+- [SARSA (On Policy TD Learning)](TD/SARSA%20Solution.ipynb)
+- [Q-Learning (Off Policy TD Learning)](TD/Q-Learning%20Solution.ipynb)
+- [Q-Learning with Linear Function Approximation](FA/Q-Learning%20with%20Value%20Function%20Approximation%20Solution.ipynb)
+- [Deep Q-Learning for Atari Games](DQN/Deep%20Q%20Learning%20Solution.ipynb)
+- [Double Deep-Q Learning for Atari Games](DQN/Double%20DQN%20Solution.ipynb)
 - Deep Q-Learning with Prioritized Experience Replay (WIP)
-- [Policy Gradient: REINFORCE with Baseline](PolicyGradient/CliffWalk REINFORCE with Baseline Solution.ipynb)
-- [Policy Gradient: Actor Critic with Baseline](PolicyGradient/CliffWalk Actor Critic Solution.ipynb)
-- [Policy Gradient: Actor Critic with Baseline for Continuous Action Spaces](PolicyGradient/Continuous MountainCar Actor Critic Solution.ipynb)
+- [Policy Gradient: REINFORCE with Baseline](PolicyGradient/CliffWalk%20REINFORCE%20with%20Baseline%20Solution.ipynb)
+- [Policy Gradient: Actor Critic with Baseline](PolicyGradient/CliffWalk%20Actor%20Critic%20Solution.ipynb)
+- [Policy Gradient: Actor Critic with Baseline for Continuous Action Spaces](PolicyGradient/Continuous%20MountainCar%20Actor%20Critic%20Solution.ipynb)
 - Deterministic Policy Gradients for Continuous Action Spaces (WIP)
 - Deep Deterministic Policy Gradients (DDPG) (WIP)
-- Asynchronous Advantage Actor Critic (A3C) (WIP)
+- [Asynchronous Advantage Actor Critic (A3C)](PolicyGradient/a3c)
 
 
 ### Resources
 
 Textbooks:
 
-- [Reinforcement Learning: An Introduction (2nd Edition)](https://webdocs.cs.ualberta.ca/~sutton/book/bookdraft2016sep.pdf)
+- [Reinforcement Learning: An Introduction (2nd Edition)](http://incompleteideas.net/book/bookdraft2018jan1.pdf)
 
 Classes:
 
@@ -65,6 +65,7 @@ Talks/Tutorials:
 - [Deep Reinforcement Learning ICML 2016 Tutorial (David Silver)](http://techtalks.tv/talks/deep-reinforcement-learning/62360/)
 - [Tutorial: Introduction to Reinforcement Learning with Function Approximation](https://www.youtube.com/watch?v=ggqnxyjaKe4)
 - [John Schulman - Deep Reinforcement Learning (4 Lectures)](https://www.youtube.com/playlist?list=PLjKEIQlKCTZYN3CYBlj8r58SbNorobqcp)
+- [Deep Reinforcement Learning Slides @ NIPS 2016](http://people.eecs.berkeley.edu/~pabbeel/nips-tutorial-policy-optimization-Schulman-Abbeel.pdf)
 
 Other Projects:
 
