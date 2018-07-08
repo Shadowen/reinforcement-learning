@@ -6,7 +6,7 @@ import matplotlib
 import numpy as np
 import tensorflow as tf
 
-from PreDQN.linear_estimator import Estimator
+from PreDQN.linear_estimator import LinearEstimator
 from PreDQN.util import *
 from lib import plotting
 
@@ -74,7 +74,7 @@ def q_learning(env, estimator, num_episodes, discount_factor=1.0, epsilon=0.1, e
 if __name__ == '__main__':
     env = gym.envs.make("MountainCar-v0")
     with tf.Session() as sess:
-        estimator = Estimator(env=env, lr=0.01)
+        estimator = LinearEstimator(env=env, lr=0.01)
 
         sess.run(tf.global_variables_initializer())
 

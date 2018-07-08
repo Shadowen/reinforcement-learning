@@ -9,7 +9,7 @@ import matplotlib
 import numpy as np
 import tensorflow as tf
 
-from PreDQN.batch_linear_estimator import Estimator
+from PreDQN.batch_linear_estimator import BatchLinearEstimator
 from lib import plotting
 
 matplotlib.style.use('ggplot')
@@ -32,7 +32,7 @@ def make_epsilon_greedy_policy(estimator, epsilon, nA):
 
     def policy_fn(observation):
         A = np.ones(nA, dtype=float) * epsilon / nA
-        q_values = estimator.predict([observation])[0]
+        q_values = estimator.predict(observation)
         best_action = np.argmax(q_values)
         A[best_action] += (1.0 - epsilon)
         return A
@@ -109,7 +109,7 @@ def q_learning(env, estimator, num_episodes, discount_factor=1.0, epsilon=0.1, e
             samples = random.sample(replay_memory, batch_size)
             states_batch, action_batch, reward_batch, next_states_batch, done_batch = map(np.array, zip(*samples))
             # Calculate q values and targets
-            q_values_next = estimator.predict(next_states_batch)
+            q_values_next = estimator.predict_batch(next_states_batch)
             targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * discount_factor * np.amax(
                 q_values_next, axis=1)
             # Update Q function.
@@ -124,32 +124,10 @@ def q_learning(env, estimator, num_episodes, discount_factor=1.0, epsilon=0.1, e
     return stats
 
 
-def plot_cost_to_go_mountain_car(env, estimator, num_tiles=20):
-    import matplotlib
-    import numpy as np
-    from matplotlib import pyplot as plt
-
-    x = np.linspace(env.observation_space.low[0], env.observation_space.high[0], num=num_tiles)
-    y = np.linspace(env.observation_space.low[1], env.observation_space.high[1], num=num_tiles)
-    X, Y = np.meshgrid(x, y)
-    Z = np.apply_along_axis(lambda _: -np.max(estimator.predict([_])[0]), 2, np.dstack([X, Y]))
-
-    fig = plt.figure(figsize=(10, 5))
-    ax = fig.add_subplot(111, projection='3d')
-    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                           cmap=matplotlib.cm.coolwarm, vmin=-1.0, vmax=1.0)
-    ax.set_xlabel('Position')
-    ax.set_ylabel('Velocity')
-    ax.set_zlabel('Value')
-    ax.set_title("Mountain \"Cost To Go\" Function")
-    fig.colorbar(surf)
-    plt.show()
-
-
 if __name__ == '__main__':
     env = gym.envs.make("MountainCar-v0")
     with tf.Session() as sess:
-        estimator = Estimator(env=env, lr=0.01)
+        estimator = BatchLinearEstimator(env=env, lr=0.01)
 
         sess.run(tf.global_variables_initializer())
 
@@ -158,5 +136,5 @@ if __name__ == '__main__':
         # to the exploration of all states.
         stats = q_learning(env, estimator, num_episodes=500, epsilon=1.0, epsilon_decay=0.99)
 
-        plot_cost_to_go_mountain_car(env, estimator)
+        plotting.plot_cost_to_go_mountain_car(env, estimator)
         plotting.plot_episode_stats(stats, smoothing_window=25)

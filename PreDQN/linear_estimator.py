@@ -4,8 +4,10 @@ import sklearn.preprocessing
 import tensorflow as tf
 from sklearn.kernel_approximation import RBFSampler
 
+from PreDQN.estimator import Estimator
 
-class Estimator():
+
+class LinearEstimator(Estimator):
     """
     Value Function approximator.
     """
@@ -50,26 +52,14 @@ class Estimator():
         featurized = self.featurizer.transform(scaled)
         return featurized[0]
 
-    def predict(self, s):
-        """
-        Makes value function predictions.
-
-        Args:
-            s: state to make a prediction for
-
-        Returns
-            This returns a vector or predictions for all actions
-            in the environment where pred[i] is the prediction for action i.
-
-        """
-        feed = {self.ob_pl: [self.featurize_state(s)]}
+    def predict(self, state):
+        feed = {self.ob_pl: [self.featurize_state(state)]}
         p = tf.get_default_session().run(self.prediction, feed_dict=feed)
         return p[0]
 
+    def predict_batch(self, state):
+        raise NotImplementedError()
+
     def update(self, s, a, y):
-        """
-        Updates the estimator parameters for a given state and action towards
-        the target y.
-        """
         feed = {self.ob_pl: [self.featurize_state(s)], self.action_pl: [a], self.target_pl: [y]}
         tf.get_default_session().run(self.minimize, feed_dict=feed)

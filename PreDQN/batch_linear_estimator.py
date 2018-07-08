@@ -4,13 +4,12 @@ import sklearn.preprocessing
 import tensorflow as tf
 from sklearn.kernel_approximation import RBFSampler
 
+from PreDQN.estimator import Estimator
 
-class Estimator():
-    """
-    Value Function approximator.
-    """
 
+class BatchLinearEstimator(Estimator):
     def __init__(self, env, lr):
+        super().__init__()
         # Feature Preprocessing: Normalize to zero mean and unit variance
         # We use a few samples from the observation space to do this
         observation_examples = np.array([env.observation_space.sample() for x in range(10000)])
@@ -51,26 +50,15 @@ class Estimator():
         featurized = self.featurizer.transform(scaled)
         return featurized
 
-    def predict(self, s):
-        """
-        Makes value function predictions.
+    def predict(self, state):
+        return self.predict_batch([state])[0]
 
-        Args:
-            s: state to make a prediction for
-
-        Returns
-            This returns a vector or predictions for all actions
-            in the environment where pred[i] is the prediction for action i.
-
-        """
-        feed = {self.ob_pl: self.featurize_state(s)}
+    def predict_batch(self, batch_state):
+        feed = {self.ob_pl: self.featurize_state(batch_state)}
         p = tf.get_default_session().run(self.prediction, feed_dict=feed)
         return p
 
-    def update(self, s, a, y):
-        """
-        Updates the estimator parameters for a given state and action towards
-        the target y.
-        """
-        feed = {self.ob_pl: self.featurize_state(s), self.action_pl: a, self.target_pl: y}
+    def update(self, batch_state, batch_action, batch_target):
+        feed = {self.ob_pl: self.featurize_state(batch_state), self.action_pl: batch_action,
+                self.target_pl: batch_target}
         tf.get_default_session().run(self.minimize, feed_dict=feed)
