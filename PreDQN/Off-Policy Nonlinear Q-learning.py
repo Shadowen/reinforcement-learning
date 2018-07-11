@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from PreDQN.batch_linear_estimator import BatchLinearEstimator
+from PreDQN.nonlinear_estimator import NonlinearEstimator
+from PreDQN.oracle_estimator import OracleEstimator
 from PreDQN.util import *
 from lib import plotting
 
@@ -35,6 +36,7 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
     Returns:
         An EpisodeStats object with two numpy arrays for episode_lengths and episode_rewards.
     """
+    oracle = OracleEstimator()
 
     batch_size = 32
     epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
@@ -47,7 +49,8 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
     for i in itertools.count():
         if i % 100 == 0:
             print("Filling replay buffer... " + str(i) + "/" + str(replay_memory.maxlen), end="\r")
-        action = env.action_space.sample()
+        q = oracle.predict(state)
+        action = np.argmax(q)
         next_state, reward, done, info = env.step(action)
         # Record the transition.
         replay_memory.append(Transition(state, action, reward, next_state, done))
@@ -81,7 +84,7 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
             # Take action.
             epsilon = epsilons[min(total_t, epsilon_decay_steps - 1)]
             action_probs = np.ones(env.action_space.n, dtype=float) * epsilon / env.action_space.n
-            q_values = q_estimator.predict(state)
+            q_values = oracle.predict(state)
             best_action = np.argmax(q_values)
             action_probs[best_action] += (1.0 - epsilon)
             action = np.random.choice(env.action_space.n, p=action_probs)
@@ -140,15 +143,15 @@ def run_episode(env, q_estimator):
 if __name__ == '__main__':
     env = gym.envs.make("MountainCar-v0")
     with tf.Session() as sess:
-        q_estimator = BatchLinearEstimator(scope='q_estimator', env=env)
-        target_estimator = BatchLinearEstimator(scope='target_estimator', env=env, copy_from=q_estimator)
+        q_estimator = NonlinearEstimator(scope='q_estimator', env=env)
+        target_estimator = NonlinearEstimator(scope='target_estimator', env=env, copy_from=q_estimator)
         sess.run(tf.global_variables_initializer())
 
         fig = None
         final_stats = None
         for episode, t, stats in q_learning(env, q_estimator=q_estimator, target_estimator=target_estimator,
-                                            update_target_estimator_every=10000, num_episodes=3000,
-                                            epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_steps=500000):
+                                            update_target_estimator_every=10000, num_episodes=5000,
+                                            epsilon_start=1, epsilon_end=0, epsilon_decay_steps=500000):
             final_stats = stats
             if episode % 50 == 0:
                 if fig is not None:

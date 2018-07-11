@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
 
-def plot_cost_to_go_mountain_car(env, estimator, num_tiles=20):
+def plot_cost_to_go_mountain_car(env, estimator, num_tiles=20, block=True):
     x = np.linspace(env.observation_space.low[0], env.observation_space.high[0], num=num_tiles)
     y = np.linspace(env.observation_space.low[1], env.observation_space.high[1], num=num_tiles)
     X, Y = np.meshgrid(x, y)
@@ -22,7 +22,9 @@ def plot_cost_to_go_mountain_car(env, estimator, num_tiles=20):
     ax.set_zlabel('Value')
     ax.set_title("Mountain \"Cost To Go\" Function")
     fig.colorbar(surf)
-    plt.show()
+    plt.show(block=block)
+    plt.pause(0.001)
+    return fig
 
 
 def plot_value_function(V, title="Value Function"):

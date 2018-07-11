@@ -5,12 +5,12 @@ from collections import deque
 from collections import namedtuple
 
 import gym
-import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.style
 import numpy as np
 import tensorflow as tf
 
-from PreDQN.batch_linear_estimator import BatchLinearEstimator
+from PreDQN.nonlinear_estimator import NonlinearEstimator
 from PreDQN.util import *
 from lib import plotting
 
@@ -140,14 +140,14 @@ def run_episode(env, q_estimator):
 if __name__ == '__main__':
     env = gym.envs.make("MountainCar-v0")
     with tf.Session() as sess:
-        q_estimator = BatchLinearEstimator(scope='q_estimator', env=env)
-        target_estimator = BatchLinearEstimator(scope='target_estimator', env=env, copy_from=q_estimator)
+        q_estimator = NonlinearEstimator(scope='q_estimator', env=env)
+        target_estimator = NonlinearEstimator(scope='target_estimator', env=env, copy_from=q_estimator)
         sess.run(tf.global_variables_initializer())
 
         fig = None
         final_stats = None
         for episode, t, stats in q_learning(env, q_estimator=q_estimator, target_estimator=target_estimator,
-                                            update_target_estimator_every=10000, num_episodes=3000,
+                                            update_target_estimator_every=10000, num_episodes=10000,
                                             epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_steps=500000):
             final_stats = stats
             if episode % 50 == 0:
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                     plt.close()
                 fig = plotting.plot_cost_to_go_mountain_car(env, q_estimator, block=False)
 
-            run_episode(env, q_estimator)
+            # run_episode(env, q_estimator)
 
         # plotting.plot_cost_to_go_mountain_car(env, q_estimator)
         # plotting.plot_episode_stats(final_stats, smoothing_window=25)
