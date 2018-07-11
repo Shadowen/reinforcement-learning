@@ -38,7 +38,6 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
     """
     oracle = OracleEstimator()
 
-
     batch_size = 32
     epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
     epsilon = epsilons[0]
@@ -119,28 +118,6 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
     return stats
 
 
-def run_episode(env, q_estimator):
-    # The policy we're following
-    policy = make_epsilon_greedy_policy(q_estimator, 0, env.action_space.n)
-
-    # Run an episode.
-    state = env.reset()
-    total_reward = 0
-    for t in itertools.count():
-        # Take action.
-        action_probs = policy(state)
-        action = np.random.choice(env.action_space.n, p=action_probs)
-        next_state, reward, done, info = env.step(action)
-        total_reward += reward
-
-        if done:
-            break
-
-        state = next_state
-
-    print("Reward: {}".format(total_reward))
-
-
 if __name__ == '__main__':
     env = gym.envs.make("MountainCar-v0")
     with tf.Session() as sess:
@@ -159,10 +136,10 @@ if __name__ == '__main__':
                     plt.close()
                 fig = plotting.plot_cost_to_go_mountain_car(env, q_estimator, block=False)
 
-            run_episode(env, q_estimator)
+            run_episode(env, q_estimator, render=False)
 
         # plotting.plot_cost_to_go_mountain_car(env, q_estimator)
         # plotting.plot_episode_stats(final_stats, smoothing_window=25)
 
         while True:
-            run_episode(env, q_estimator)
+            run_episode(env, q_estimator, render=True)

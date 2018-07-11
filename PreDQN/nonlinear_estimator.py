@@ -43,7 +43,7 @@ class NonlinearEstimator(Estimator):
         self.loss = tf.reduce_sum((action_one_hot * (tiled_target - self.prediction)) ** 2)
 
         # Set up optimizer.
-        optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
+        optimizer = tf.train.AdamOptimizer(learning_rate=0.005)
         self.minimize = optimizer.minimize(self.loss)
 
     def predict(self, state):

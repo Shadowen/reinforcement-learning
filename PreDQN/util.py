@@ -1,6 +1,9 @@
+import itertools
+
+import matplotlib.pyplot as plt
 import numpy as np
 
-__all__ = ['make_epsilon_greedy_policy']
+__all__ = ['make_epsilon_greedy_policy', 'run_episode']
 
 
 def make_epsilon_greedy_policy(estimator, epsilon, nA):
@@ -26,3 +29,28 @@ def make_epsilon_greedy_policy(estimator, epsilon, nA):
         return A
 
     return policy_fn
+
+
+def run_episode(env, q_estimator, render=True):
+    # The policy we're following
+    policy = make_epsilon_greedy_policy(q_estimator, 0, env.action_space.n)
+
+    # Run an episode.
+    state = env.reset()
+    total_reward = 0
+    for t in itertools.count():
+        # Take action.
+        action_probs = policy(state)
+        action = np.random.choice(env.action_space.n, p=action_probs)
+        next_state, reward, done, info = env.step(action)
+        total_reward += reward
+
+        if done:
+            break
+
+        if render:
+            env.render(mode='human')
+            plt.pause(0.1)
+        state = next_state
+
+    print("Reward: {}".format(total_reward))
