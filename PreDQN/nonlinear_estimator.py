@@ -30,7 +30,7 @@ class NonlinearEstimator(Estimator):
 
     def _init_model(self, env):
         # Build model.
-        self.ob_pl = tf.placeholder(dtype=tf.float32, shape=[None, 2], name="observation")
+        self.ob_pl = tf.placeholder(dtype=tf.float32, shape=[None, env.observation_space.shape[0]], name="observation")
         h1 = tf.layers.dense(inputs=self.ob_pl, units=16, activation=tf.sigmoid)
         h2 = tf.layers.dense(inputs=h1, units=32, activation=tf.sigmoid)
         self.prediction = tf.layers.dense(inputs=h2, units=env.action_space.n)

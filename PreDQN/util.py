@@ -50,7 +50,7 @@ def run_episode(env, q_estimator, render=True):
 
         if render:
             env.render(mode='human')
-            plt.pause(0.1)
+            plt.pause(0.05)
         state = next_state
 
     print("Reward: {}".format(total_reward))
