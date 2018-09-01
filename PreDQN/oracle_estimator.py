@@ -22,3 +22,9 @@ class OracleEstimator(Estimator):
 
     def copy_params(self):
         pass
+
+    def save(self, directory):
+        pass
+
+    def load(self, directory):
+        pass

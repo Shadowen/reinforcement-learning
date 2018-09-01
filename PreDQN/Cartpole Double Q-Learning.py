@@ -5,7 +5,6 @@ from collections import deque
 from collections import namedtuple
 
 import gym
-import matplotlib.pyplot as plt
 import matplotlib.style
 import numpy as np
 import tensorflow as tf
@@ -117,6 +116,8 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
 
 
 if __name__ == '__main__':
+    save_directory = get_or_make_data_dir('q_estimator')
+
     env = gym.envs.make("CartPole-v1")
     with tf.Session() as sess:
         q_estimator = NonlinearEstimator(scope='q_estimator', env=env)
@@ -126,10 +127,13 @@ if __name__ == '__main__':
         fig = None
         final_stats = None
         for episode, t, stats in q_learning(env, q_estimator=q_estimator, target_estimator=target_estimator,
-                                            update_target_estimator_every=10000, num_episodes=10000,
-                                            epsilon_start=1.0, epsilon_end=0.01, epsilon_decay_steps=250000):
+                                            discount_factor=1.0, update_target_estimator_every=10000,
+                                            num_episodes=10000, epsilon_start=1.0, epsilon_end=0.01,
+                                            epsilon_decay_steps=200000):
             final_stats = stats
-            # run_episode(env, q_estimator, render=False)
+            if episode % 1000 == 0:
+                q_estimator.save(save_directory)
+        log_episode_stats(get_empty_data_file("stats.csv"), final_stats)
 
         plotting.plot_episode_stats(final_stats, smoothing_window=25)
 

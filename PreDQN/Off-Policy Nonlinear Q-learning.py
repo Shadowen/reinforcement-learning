@@ -119,6 +119,8 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
 
 
 if __name__ == '__main__':
+    save_directory = get_or_make_data_dir('q_estimator')
+
     env = gym.envs.make("MountainCar-v0")
     with tf.Session() as sess:
         q_estimator = NonlinearEstimator(scope='q_estimator', env=env)
@@ -136,7 +138,11 @@ if __name__ == '__main__':
                     plt.close()
                 fig = plotting.plot_cost_to_go_mountain_car(env, q_estimator, block=False)
 
+            if episode % 500 == 0:
+                q_estimator.save(save_directory)
+
             run_episode(env, q_estimator, render=False)
+        log_episode_stats(get_empty_data_file("stats.csv"), final_stats)
 
         # plotting.plot_cost_to_go_mountain_car(env, q_estimator)
         # plotting.plot_episode_stats(final_stats, smoothing_window=25)

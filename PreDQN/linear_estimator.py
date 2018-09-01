@@ -29,20 +29,27 @@ class LinearEstimator(Estimator):
         ])
         self.featurizer.fit(self.scaler.transform(observation_examples))
 
-        # Build model.
-        self.ob_pl = tf.placeholder(dtype=tf.float32, shape=[None, 400],
-                                    name="observation")
-        self.prediction = tf.layers.dense(inputs=self.ob_pl, units=env.action_space.n,
-                                          kernel_initializer=tf.zeros_initializer(),
-                                          bias_initializer=tf.zeros_initializer())
-        self.action_pl = tf.placeholder(dtype=tf.uint8, shape=[None], name="action")
-        self.action_one_hot = tf.one_hot(self.action_pl, depth=env.action_space.n)
-        self.target_pl = tf.placeholder(dtype=tf.float32, shape=[None], name="target")
-        self.loss = tf.reduce_sum((self.action_one_hot * (self.target_pl - self.prediction)) ** 2)
+        self.scope = 'q_estimator'
+        with tf.variable_scope(self.scope):
+            # Build model.
+            self.ob_pl = tf.placeholder(dtype=tf.float32, shape=[None, 400],
+                                        name="observation")
+            self.prediction = tf.layers.dense(inputs=self.ob_pl, units=env.action_space.n,
+                                              kernel_initializer=tf.zeros_initializer(),
+                                              bias_initializer=tf.zeros_initializer())
+            self.action_pl = tf.placeholder(dtype=tf.uint8, shape=[None], name="action")
+            self.action_one_hot = tf.one_hot(self.action_pl, depth=env.action_space.n)
+            self.target_pl = tf.placeholder(dtype=tf.float32, shape=[None], name="target")
+            self.loss = tf.reduce_sum((self.action_one_hot * (self.target_pl - self.prediction)) ** 2)
 
-        # Set up optimizer.
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=lr)
-        self.minimize = optimizer.minimize(self.loss)
+            # Set up optimizer.
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=lr)
+            self.minimize = optimizer.minimize(self.loss, global_step=tf.train.get_or_create_global_step())
+
+        # Set up saver.
+        my_params = [t for t in tf.trainable_variables() if t.name.startswith(self.scope)]
+        my_params = sorted(my_params, key=lambda v: v.name)
+        self.saver = tf.train.Saver(my_params)
 
     def featurize_state(self, state):
         """
@@ -63,3 +70,9 @@ class LinearEstimator(Estimator):
     def update(self, s, a, y):
         feed = {self.ob_pl: [self.featurize_state(s)], self.action_pl: [a], self.target_pl: [y]}
         tf.get_default_session().run(self.minimize, feed_dict=feed)
+
+    def save(self, directory):
+        self.saver.save(tf.get_default_session(), directory, global_step=tf.train.get_or_create_global_step())
+
+    def load(self, directory):
+        self.saver.restore(tf.get_default_session(), directory)

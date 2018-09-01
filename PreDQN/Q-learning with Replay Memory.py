@@ -101,6 +101,8 @@ def q_learning(env, estimator, num_episodes, discount_factor=1.0, epsilon=0.1, e
 
 
 if __name__ == '__main__':
+    save_directory = get_or_make_data_dir('q_estimator')
+
     env = gym.envs.make("MountainCar-v0")
     with tf.Session() as sess:
         estimator = BatchLinearEstimator(scope='q_estimator', env=env)
@@ -111,6 +113,8 @@ if __name__ == '__main__':
         # because our initial estimate for all states is too "optimistic" which leads
         # to the exploration of all states.
         stats = q_learning(env, estimator, num_episodes=500, epsilon=1.0, epsilon_decay=0.99)
+        log_episode_stats(get_empty_data_file("stats.csv"), stats)
+        estimator.save(save_directory)
 
         plotting.plot_cost_to_go_mountain_car(env, estimator)
         plotting.plot_episode_stats(stats, smoothing_window=25)

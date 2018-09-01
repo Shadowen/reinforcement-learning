@@ -43,3 +43,13 @@ class Estimator:
         the target y.
         """
         pass
+
+    @abstractmethod
+    def save(self, directory):
+        """Saves the estimator's parameters to the target directory."""
+        pass
+
+    @abstractmethod
+    def load(self, directory):
+        """Loads the estimator's parameters from the target directory."""
+        pass

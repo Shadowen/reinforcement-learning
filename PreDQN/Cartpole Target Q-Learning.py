@@ -5,12 +5,11 @@ from collections import deque
 from collections import namedtuple
 
 import gym
-import matplotlib
-import matplotlib.pyplot as plt
+import matplotlib.style
 import numpy as np
 import tensorflow as tf
 
-from PreDQN.batch_linear_estimator import BatchLinearEstimator
+from PreDQN.nonlinear_estimator import NonlinearEstimator
 from PreDQN.util import *
 from lib import plotting
 
@@ -115,57 +114,27 @@ def q_learning(env, q_estimator, target_estimator, num_episodes,
     return stats
 
 
-def run_episode(env, q_estimator):
-    # The policy we're following
-    policy = make_epsilon_greedy_policy(q_estimator, 0, env.action_space.n)
-
-    # Run an episode.
-    state = env.reset()
-    total_reward = 0
-    for t in itertools.count():
-        # Take action.
-        action_probs = policy(state)
-        action = np.random.choice(env.action_space.n, p=action_probs)
-        next_state, reward, done, info = env.step(action)
-        total_reward += reward
-
-        if done:
-            break
-
-        state = next_state
-
-    print("Reward: {}".format(total_reward))
-
-
 if __name__ == '__main__':
     save_directory = get_or_make_data_dir('q_estimator')
 
-    env = gym.envs.make("MountainCar-v0")
+    env = gym.envs.make("CartPole-v1")
     with tf.Session() as sess:
-        q_estimator = BatchLinearEstimator(scope='q_estimator', env=env)
-        target_estimator = BatchLinearEstimator(scope='target_estimator', env=env, copy_from=q_estimator)
+        q_estimator = NonlinearEstimator(scope='q_estimator', env=env)
+        target_estimator = NonlinearEstimator(scope='target_estimator', env=env, copy_from=q_estimator)
         sess.run(tf.global_variables_initializer())
 
         fig = None
         final_stats = None
         for episode, t, stats in q_learning(env, q_estimator=q_estimator, target_estimator=target_estimator,
-                                            update_target_estimator_every=10000, num_episodes=3000,
-                                            epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_steps=500000):
+                                            discount_factor=1.0, update_target_estimator_every=10000,
+                                            num_episodes=10000, epsilon_start=1.0, epsilon_end=0.01,
+                                            epsilon_decay_steps=200000):
             final_stats = stats
-            if episode % 50 == 0:
-                if fig is not None:
-                    plt.close()
-                fig = plotting.plot_cost_to_go_mountain_car(env, q_estimator, block=False)
-
-            if episode % 500 == 0:
+            if episode % 1000 == 0:
                 q_estimator.save(save_directory)
-
-            run_episode(env, q_estimator)
-
         log_episode_stats(get_empty_data_file("stats.csv"), final_stats)
 
-        # plotting.plot_cost_to_go_mountain_car(env, q_estimator)
-        # plotting.plot_episode_stats(final_stats, smoothing_window=25)
+        plotting.plot_episode_stats(final_stats, smoothing_window=25)
 
         while True:
             run_episode(env, q_estimator)

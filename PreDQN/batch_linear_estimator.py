@@ -21,10 +21,10 @@ class BatchLinearEstimator(Estimator):
         with tf.variable_scope(self.scope):
             self._init_model(env)
 
+        my_params = [t for t in tf.trainable_variables() if t.name.startswith(self.scope)]
+        my_params = sorted(my_params, key=lambda v: v.name)
         if copy_from is not None:
             # Set up assignment operations for copying parameters.
-            my_params = [t for t in tf.trainable_variables() if t.name.startswith(self.scope)]
-            my_params = sorted(my_params, key=lambda v: v.name)
             their_params = [t for t in tf.trainable_variables() if t.name.startswith(copy_from.scope)]
             their_params = sorted(their_params, key=lambda v: v.name)
 
@@ -32,6 +32,9 @@ class BatchLinearEstimator(Estimator):
             for my_v, thier_v in zip(my_params, their_params):
                 op = tf.assign(my_v, thier_v)
                 self.copy_ops.append(op)
+
+        # Set up saver.
+        self.saver = tf.train.Saver(my_params)
 
     def _init_feature_preprocessor(self, env):
         # Feature Preprocessing: Normalize to zero mean and unit variance
@@ -64,7 +67,7 @@ class BatchLinearEstimator(Estimator):
 
         # Set up optimizer.
         optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-        self.minimize = optimizer.minimize(self.loss)
+        self.minimize = optimizer.minimize(self.loss, global_step=tf.train.get_or_create_global_step())
 
     def _featurize_state(self, state):
         """
@@ -90,3 +93,9 @@ class BatchLinearEstimator(Estimator):
     def copy_params(self):
         """Copies parameters from the estimator passed in at initialization."""
         tf.get_default_session().run(self.copy_ops)
+
+    def save(self, directory):
+        self.saver.save(tf.get_default_session(), directory, global_step=tf.train.get_or_create_global_step())
+
+    def load(self, directory):
+        self.saver.restore(tf.get_default_session(), directory)
